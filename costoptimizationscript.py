@@ -3,6 +3,7 @@ import json
 import datetime
 import botocore
 import os
+import uuid
 from fpdf import FPDF
 
 # Initialize AWS clients
@@ -67,7 +68,7 @@ def generate_pdf_report(recommendations):
                 pdf.cell(200, 6, "- No optimizations found", ln=True, align='L')
             pdf.ln(5)
     
-    pdf_output_path = "/tmp/cost_optimization_report.pdf"
+    pdf_output_path = f"/tmp/cost_optimization_report_{uuid.uuid4().hex}.pdf"
     pdf.output(pdf_output_path)
     return pdf_output_path
 
@@ -76,7 +77,7 @@ def is_weekend(timestamp):
     return timestamp.weekday() >= 5  # Saturday (5) or Sunday (6)
 
 # Function to retrieve P95 percentile metric
-def get_percentile_metric(client, instance_id, namespace, metric_name, dimension_name, percentile="p95", period=86400, days=30):
+def get_percentile_metric(client, instance_id, namespace, metric_name, dimension_name, percentile="p95.0", period=86400, days=30):
     """Retrieve the specified percentile for a given metric."""
     response = client.get_metric_statistics(
         Namespace=namespace,
@@ -85,7 +86,7 @@ def get_percentile_metric(client, instance_id, namespace, metric_name, dimension
         StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=days),
         EndTime=datetime.datetime.utcnow(),
         Period=period,
-        Statistics=[percentile]
+        ExtendedStatistics=[percentile]
     )
     return response.get('Datapoints', [])
 
@@ -94,38 +95,142 @@ def get_low_utilization_ec2(clients, threshold=5, period=86400, days=30):
     """Find EC2 instances with low CPU usage using P95 percentiles."""
     instances = clients["ec2"].describe_instances(Filters=[{"Name": "instance-state-name", "Values": ["running"]}])
     underutilized = []
-    
+
     for reservation in instances["Reservations"]:
         for instance in reservation["Instances"]:
             instance_id = instance["InstanceId"]
-            datapoints = get_percentile_metric(clients["cloudwatch"], instance_id, "AWS/EC2", "CPUUtilization", "InstanceId", "p95", period, days)
-            
-            weekday_usage = [data['p95'] for data in datapoints if not is_weekend(data['Timestamp'])]
-            weekend_usage = [data['p95'] for data in datapoints if is_weekend(data['Timestamp'])]
-            
+            datapoints = get_percentile_metric(
+                clients["cloudwatch"],
+                instance_id,
+                "AWS/EC2",
+                "CPUUtilization",
+                "InstanceId",
+                "p95",
+                period,
+                days
+            )
+
+            if not datapoints:
+                continue  # Skip instance if no data
+
+            weekday_usage = [data.get('ExtendedStatistics', {}).get('p95.0') or data.get('p95.0') for data in datapoints if not is_weekend(data['Timestamp'])]
+            weekend_usage = [data.get('ExtendedStatistics', {}).get('p95.0') or data.get('p95.0') for data in datapoints if is_weekend(data['Timestamp'])]
+
+            # Filter out None values
+            weekday_usage = [v for v in weekday_usage if v is not None]
+            weekend_usage = [v for v in weekend_usage if v is not None]
+
+            if not weekday_usage and not weekend_usage:
+                continue
+
             weekday_avg = sum(weekday_usage) / len(weekday_usage) if weekday_usage else 0
             weekend_avg = sum(weekend_usage) / len(weekend_usage) if weekend_usage else 0
-            
+
             if weekday_avg < threshold and weekend_avg < threshold:
                 underutilized.append(instance_id)
-    
+
     return underutilized
+
+
+# Function to identify underutilized RDS instances
+def get_low_utilization_rds(clients, threshold=10, period=86400, days=30):
+    """Find RDS instances with low CPU usage using P95 percentiles."""
+    databases = clients["rds"].describe_db_instances()
+    underutilized = []
+
+    for db in databases["DBInstances"]:
+        db_id = db["DBInstanceIdentifier"]
+        datapoints = get_percentile_metric(
+            clients["cloudwatch"],
+            db_id,
+            "AWS/RDS",
+            "CPUUtilization",
+            "DBInstanceIdentifier",
+            "p95",
+            period,
+            days
+        )
+
+        if not datapoints:
+            continue
+
+        weekday_usage = [data.get('ExtendedStatistics', {}).get('p95.0') or data.get('p95.0') for data in datapoints if not is_weekend(data['Timestamp'])]
+        weekend_usage = [data.get('ExtendedStatistics', {}).get('p95.0') or data.get('p95.0') for data in datapoints if is_weekend(data['Timestamp'])]
+
+        weekday_usage = [v for v in weekday_usage if v is not None]
+        weekend_usage = [v for v in weekend_usage if v is not None]
+
+        if not weekday_usage and not weekend_usage:
+            continue
+
+        weekday_avg = sum(weekday_usage) / len(weekday_usage) if weekday_usage else 0
+        weekend_avg = sum(weekend_usage) / len(weekend_usage) if weekend_usage else 0
+
+        if weekday_avg < threshold and weekend_avg < threshold:
+            underutilized.append(db_id)
+
+    return underutilized
+
+
+# Function to identify S3 storage savings
+def get_s3_storage_savings(clients):
+    """Find S3 buckets that could benefit from lifecycle policies."""
+    buckets = clients["s3"].list_buckets()
+    savings = {}
+
+    for bucket in buckets["Buckets"]:
+        bucket_name = bucket["Name"]
+        try:
+            response = clients["s3"].get_bucket_lifecycle_configuration(Bucket=bucket_name)
+            if response.get("Rules"):
+                savings[bucket_name] = "Consider moving infrequent objects to S3 Intelligent-Tiering."
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchLifecycleConfiguration":
+                continue  
+            else:
+                print(f"Error processing bucket {bucket_name}: {e}")
+                continue
+
+    return savings
 
 # Function to send SNS notification
 def send_notification(message, pdf_path):
     """Send cost optimization recommendations via SNS with a formatted message."""
-    formatted_message = "\n".join([f"**{category}**\n  - " + "\n  - ".join(items) for category, items in message.items()])
-    
+
+    if not message:
+        formatted_message = "No cost optimization recommendations found."
+    else:
+        formatted_message = "\n".join(
+            [f"{category}:\n  - " + "\n  - ".join(items) if items else f"{category}:\n  - No optimizations found"
+             for category, items in message.items()]
+        )
+
+    # Truncate if too long for SNS limits
+    if len(formatted_message) > 250000:  # ~250KB to leave space for metadata
+        formatted_message = formatted_message[:250000] + "\n\n[Message Truncated]"
+
+    # Construct the message in JSON format (useful if SNS is triggering Lambda, etc.)
+    sns_payload = {
+        "Subject": "AWS Cost Optimization Recommendations",
+        "Message": f"AWS Cost Optimization Recommendations:\n{formatted_message}\n\nDownload the full report: {pdf_path}"
+    }
+
+    # Send SNS notification
     sns_client.publish(
         TopicArn=SNS_TOPIC_ARN,
-        Message=f"AWS Cost Optimization Recommendations:\n{formatted_message}\n\nDownload the full report: {pdf_path}",
-        Subject="AWS Cost Optimization Recommendations"
+        Message=json.dumps(sns_payload),
+        Subject=sns_payload["Subject"]
     )
+
 
 # Main Lambda function
 def lambda_handler(event, context):
     """Main Lambda function to check for cost-saving opportunities across multiple accounts."""
     accounts = event.get("account_ids", [])
+
+    # Ensure accounts is always a list
+    if isinstance(accounts, str):  # If it's a single account ID as a string
+        accounts = [accounts]
 
     # If no accounts are provided, run in the current AWS account
     if not accounts:
@@ -139,6 +244,8 @@ def lambda_handler(event, context):
         
         recommendations = {
             "Underutilized EC2 Instances": get_low_utilization_ec2(clients),
+            "Underutilized RDS Databases": get_low_utilization_rds(clients),
+            "S3 Storage Optimization": get_s3_storage_savings(clients),
         }
         all_recommendations[account_id] = recommendations
     
