@@ -30,8 +30,8 @@ Before you begin, ensure you have:
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/aws-cost-optimization.git
-cd aws-cost-optimization
+git clone https://github.com/yourusername/CostOptimizationWithAWSLambda.git
+cd CostOptimizationWithAWSLambda
 ```
 
 ### 2️⃣ Install Dependencies
