@@ -45,7 +45,7 @@ pip install -r requirements.txt
 - 🔹 **Create a new Lambda function** in the AWS Console.
 - 🔹 Set the **runtime** to Python 3.x.
 - 🔹 Upload `lambda_function.py` as the function code.
-- 🔹 Set the environment variable `SNS_TOPIC_ARN` with your SNS Topic ARN.
+- 🔹 Set the environment variables `SNS_TOPIC_ARN` , `ASSUMABLE_ROLE_NAME`,  `PDF_REPORT_BUCKET` .
 - 🔹 Assign **IAM roles** with permissions for EC2, RDS, S3, and SNS.
 
 ### 4️⃣ Deploy and Test
