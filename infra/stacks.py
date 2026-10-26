@@ -212,6 +212,8 @@ class DemoStack(Stack):
                 origin=origins.S3BucketOrigin.with_origin_access_control(site_bucket),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 response_headers_policy=headers,
+                # Caching off: deploys show up immediately with no paid invalidations.
+                cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,
             ),
         )
         site_origin = f"https://{site.distribution_domain_name}"
@@ -237,7 +239,7 @@ class DemoStack(Stack):
             self, "DeploySite", destination_bucket=site_bucket,
             sources=[s3deploy.Source.asset(str(ROOT / "web")),
                      s3deploy.Source.json_data("config.json", {"apiUrl": http_api.api_endpoint})],
-            distribution=site, distribution_paths=["/*"], prune=True)
+            prune=True)  # no CloudFront invalidation: caching is disabled
 
         CfnOutput(self, "SiteUrl", value=site_origin)
         CfnOutput(self, "ApiUrl", value=http_api.api_endpoint)

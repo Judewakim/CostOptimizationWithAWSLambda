@@ -68,3 +68,12 @@ def test_only_the_role_template_is_public():
                                                                    .get("Statement", [{}])[0].get("Principal", ""))]
     docs = json.dumps([r["Properties"]["PolicyDocument"] for r in public])
     assert "templates/readonly-role.yaml" in docs
+
+
+def test_site_has_caching_disabled_and_no_invalidation():
+    t = _synth(DemoStack)
+    t.has_resource_properties("AWS::CloudFront::Distribution", {"DistributionConfig": {
+        "DefaultCacheBehavior": Match.object_like({
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"})}})  # AWS managed CachingDisabled
+    for res in t.find_resources("Custom::CDKBucketDeployment").values():
+        assert "DistributionId" not in res["Properties"]
