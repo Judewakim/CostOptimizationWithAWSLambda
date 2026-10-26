@@ -37,34 +37,57 @@
 
   // ---------- receipt lines ----------
 
-  function receiptLine(what, where, amount, share) {
+  function receiptLine(what, where, amount) {
     const li = el("li");
     li.append(el("span", "what", what), el("span", "amt", money(amount)));
     if (where) li.append(el("span", "where", where));
-    if (share !== undefined) {
-      const bar = el("span", "bar");
-      const fill = el("span");
-      fill.style.width = Math.max(2, Math.round(share * 100)) + "%";
-      bar.append(fill);
-      li.append(bar);
-    }
     return li;
   }
 
   function printReceipt(list, items) {
     list.replaceChildren(...items);
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
-    items.forEach((li, i) => { li.style.animationDelay = (i * 140) + "ms"; });
-    list.closest(".receipt").classList.add("printing");
+    const receipt = list.closest(".receipt");
+    receipt.classList.remove("printing");
+    void receipt.offsetWidth;  // restart the feed animation on re-render
+    receipt.classList.add("printing");
+  }
+
+  function stamp(date) {
+    const d = date ? new Date(date) : new Date();
+    return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) + " " +
+      d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Decorative barcode, deterministic for a given text.
+  function barcode(container, text) {
+    let h = 2166136261;
+    const bars = [];
+    for (let i = 0; i < 46; i++) {
+      h = Math.imul(h ^ text.charCodeAt(i % text.length) ^ i, 16777619) >>> 0;
+      const bar = el("span", i % 2 ? "gap" : null);
+      bar.style.width = (1 + (h % 3)) + "px";
+      bars.push(bar);
+    }
+    container.replaceChildren(...bars);
+  }
+
+  function maskedAccount(id) {
+    return id ? "Acct: ****" + String(id).slice(-4) : "Acct: demo";
   }
 
   function renderHero(sample) {
     const top = sample.findings.slice(0, 6);
-    printReceipt($("#hero-lines"), top.map((f) =>
-      receiptLine(f.title.replace(/s$/, ""), `${f.region}  ${f.resource_id}`, f.monthly_cost)));
+    const lines = top.map((f) =>
+      receiptLine(f.title.replace(/s$/, ""), `${f.region}  ${f.resource_id}`, f.monthly_cost));
+    const rest = sample.findings.length - top.length;
+    if (rest > 0) lines.push(el("li", "more", `+ ${rest} more items`));
+    printReceipt($("#hero-lines"), lines);
+    $("#hero-date").textContent = stamp();
+    $("#hero-count").textContent = String(sample.findings.length);
+    $("#hero-regions").textContent = String((sample.regions || []).length);
     $("#hero-total").textContent = money(sample.monthly_total);
-    $("#hero-annual").textContent = `${money(sample.annual_total)} a year, ${sample.findings.length} findings`;
+    $("#hero-annual").textContent = money(sample.annual_total);
+    barcode($("#hero-barcode"), "WF-DEMO-2026");
   }
 
   // ---------- results ----------
@@ -80,14 +103,21 @@
     $("#results-meta").textContent = isSample
       ? `A demo account with typical leftovers. ${regions} regions scanned.`
       : `Account ${result.account_id}. ${regions} regions scanned${when ? ", finished " + when : ""}.`;
-    $("#results-account").textContent = isSample ? "demo" : result.account_id;
+    $("#results-account").textContent = isSample ? "Acct: demo" : maskedAccount(result.account_id);
+    $("#results-date").textContent = stamp(result.finished_at);
 
     const summary = Object.entries(result.summary || {});
-    const max = summary.reduce((m, [, s]) => Math.max(m, s.monthly_cost), 0) || 1;
-    printReceipt($("#category-lines"), summary.map(([, s]) =>
-      receiptLine(s.title, `${s.count} found`, s.monthly_cost, s.monthly_cost / max)));
+    const lines = summary.map(([, s]) => receiptLine(s.title, `qty ${s.count}`, s.monthly_cost));
+    if (lines.length === 0) lines.push(el("li", "more", "No waste found. Nice."));
+    printReceipt($("#category-lines"), lines);
+    $("#results-count").textContent = String(result.findings.length);
+    $("#results-regions").textContent = String(regions);
     $("#results-total").textContent = money(result.monthly_total);
-    $("#results-annual").textContent = `${money(result.annual_total)} a year`;
+    $("#results-annual").textContent = money(result.annual_total);
+    const code = isSample ? "WF-DEMO-2026" : "WF-" + String(result.account_id).slice(-4) + "-" +
+      (result.finished_at || "").slice(0, 10).replace(/-/g, "");
+    $("#results-code").textContent = code;
+    barcode($("#results-barcode"), code);
 
     const filter = $("#filter");
     filter.replaceChildren(el("option", null, "All findings"));
