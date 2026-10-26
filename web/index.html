@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AWS Waste Finder</title>
+  <meta name="description" content="A read-only scanner that finds idle and orphaned AWS resources and prices each one per month.">
+  <link rel="preload" href="fonts/archivo-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#fff4c2">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./"><img src="logo.png" alt="" width="44" height="44">AWS Waste Finder</a>
+    <nav>
+      <a href="https://github.com/Judewakim/CostOptimizationWithAWSLambda" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Find the AWS charges nobody is using.</h1>
+        <p class="lede">Idle NAT gateways, forgotten volumes, Elastic IPs pointing at nothing. Waste Finder
+          scans every region of an account with read-only access and puts a monthly price on each one.</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-action="sample">See a sample scan</button>
+          <a class="btn btn-secondary" href="#scan">Scan my account</a>
+        </div>
+        <p class="fine">Read-only. It can't see your data, and it can't change anything.</p>
+      </div>
+
+      <figure class="receipt receipt-hero" aria-label="Sample receipt of waste found in a demo account">
+        <div class="paper">
+          <header class="rc-head">
+            <img class="rc-logo" src="logo.png" alt="" width="64" height="64">
+            <p class="rc-store">AWS WASTE FINDER</p>
+            <p class="rc-sub">Read-only account audit</p>
+            <p class="rc-meta"><span id="hero-date"></span><span>Acct: demo</span></p>
+          </header>
+          <hr class="rc-rule">
+          <div class="rc-cols"><span>Item</span><span>$/month</span></div>
+          <hr class="rc-rule">
+          <ol class="receipt-lines" id="hero-lines"></ol>
+          <hr class="rc-rule">
+          <div class="rc-row"><span>Items found</span><span id="hero-count"></span></div>
+          <div class="rc-row"><span>Regions checked</span><span id="hero-regions"></span></div>
+          <hr class="rc-rule rc-rule-double">
+          <div class="receipt-total"><span>Monthly waste</span><strong id="hero-total">$0.00</strong></div>
+          <div class="rc-row"><span>Per year</span><span id="hero-annual"></span></div>
+          <div class="barcode" id="hero-barcode" aria-hidden="true"></div>
+          <p class="rc-code" aria-hidden="true">WF-DEMO-2026</p>
+          <p class="rc-foot">Nothing was changed.<br>Keep this receipt.</p>
+        </div>
+      </figure>
+    </section>
+
+    <section class="checks" aria-labelledby="checks-title">
+      <h2 id="checks-title">What it looks for</h2>
+      <dl class="check-list">
+        <div><dt>Idle NAT gateways</dt><dd>No traffic for 14 days. $32.85/month each before data charges.</dd></div>
+        <div><dt>Unattached EBS volumes</dt><dd>Disks still billed after their instance is gone, priced by type, size and IOPS.</dd></div>
+        <div><dt>Over-provisioned instances</dt><dd>Pulled from AWS Compute Optimizer, which prices the right size for you.</dd></div>
+        <div><dt>Idle load balancers</dt><dd>No registered targets, or no requests in 14 days.</dd></div>
+        <div><dt>Orphaned snapshots</dt><dd>Older than 90 days, source volume deleted, not used by an AMI or AWS Backup.</dd></div>
+        <div><dt>gp2 volumes</dt><dd>gp3 is about 20% cheaper. The math accounts for IOPS above the free baseline.</dd></div>
+        <div><dt>Log groups that never expire</dt><dd>Large log groups with no retention setting keep growing the bill.</dd></div>
+        <div><dt>Instances stopped for 30+ days</dt><dd>Stopped compute is free. Its disks are not.</dd></div>
+        <div><dt>Abandoned multipart uploads</dt><dd>Invisible in the S3 console, billed as storage.</dd></div>
+        <div><dt>Unused Elastic IPs</dt><dd>Every public IPv4 address costs $3.65/month.</dd></div>
+      </dl>
+    </section>
+
+    <section class="scan" id="scan" aria-labelledby="scan-title">
+      <h2 id="scan-title">Scan your own account</h2>
+      <p class="scan-intro">Three steps, about five minutes. You create a temporary read-only role, run the scan,
+        then delete the role.</p>
+
+      <div class="notice" id="scan-unavailable" hidden>
+        Live scanning isn't connected on this copy of the site. The sample scan above shows the full report.
+      </div>
+
+      <ol class="steps" id="scan-steps">
+        <li class="step" id="step-role">
+          <h3>Create the read-only role</h3>
+          <p>This opens the AWS console with a CloudFormation stack ready to create. The role can list resources
+            and read usage metrics. It can't read files, logs or databases, and it only works with the one-time ID
+            below.</p>
+          <button type="button" class="btn btn-primary" data-action="session">Get my one-time link</button>
+          <div class="step-detail" id="session-detail" hidden>
+            <a class="btn btn-primary" id="launch-link" target="_blank" rel="noopener noreferrer">Open AWS console</a>
+            <p class="fine">One-time ID: <code id="external-id"></code>. In the console, tick the IAM
+              acknowledgement and choose Create stack. Wait for CREATE_COMPLETE.</p>
+          </div>
+        </li>
+        <li class="step" id="step-scan">
+          <h3>Run the scan</h3>
+          <form id="scan-form" novalidate>
+            <label for="account-id">AWS account ID</label>
+            <div class="inline">
+              <input id="account-id" name="accountId" inputmode="numeric" autocomplete="off"
+                     placeholder="123456789012" maxlength="14" pattern="[0-9 -]{12,14}" disabled>
+              <button type="submit" class="btn btn-primary" id="scan-btn" disabled>Run scan</button>
+            </div>
+            <p class="field-error" id="account-error" role="alert"></p>
+          </form>
+          <p class="status" id="scan-status" role="status" aria-live="polite"></p>
+        </li>
+        <li class="step" id="step-cleanup">
+          <h3>Delete the role</h3>
+          <p>When you're done, delete the <strong>WasteFinderReadOnly</strong> stack in
+            <a href="https://console.aws.amazon.com/cloudformation/home#/stacks" target="_blank"
+               rel="noopener noreferrer">CloudFormation</a>. Access ends the moment it's gone. Results here expire
+            within a day.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="results" id="results" hidden aria-labelledby="results-title">
+      <div class="results-head">
+        <div>
+          <h2 id="results-title">Scan results</h2>
+          <p class="meta" id="results-meta"></p>
+        </div>
+        <button type="button" class="btn btn-secondary" data-action="download">Download JSON</button>
+      </div>
+
+      <div class="results-grid">
+        <figure class="receipt" aria-label="Waste by category">
+          <div class="paper">
+            <header class="rc-head">
+              <img class="rc-logo" src="logo.png" alt="" width="64" height="64">
+              <p class="rc-store">AWS WASTE FINDER</p>
+              <p class="rc-sub">Waste by category</p>
+              <p class="rc-meta"><span id="results-date"></span><span id="results-account"></span></p>
+            </header>
+            <hr class="rc-rule">
+            <div class="rc-cols"><span>Category</span><span>$/month</span></div>
+            <hr class="rc-rule">
+            <ol class="receipt-lines" id="category-lines"></ol>
+            <hr class="rc-rule">
+            <div class="rc-row"><span>Items found</span><span id="results-count"></span></div>
+            <div class="rc-row"><span>Regions checked</span><span id="results-regions"></span></div>
+            <hr class="rc-rule rc-rule-double">
+            <div class="receipt-total"><span>Monthly waste</span><strong id="results-total"></strong></div>
+            <div class="rc-row"><span>Per year</span><span id="results-annual"></span></div>
+            <div class="barcode" id="results-barcode" aria-hidden="true"></div>
+            <p class="rc-code" id="results-code" aria-hidden="true"></p>
+            <p class="rc-foot">Nothing was changed.<br>Keep this receipt.</p>
+          </div>
+        </figure>
+
+        <div class="findings">
+          <div class="findings-bar">
+            <label for="filter">Show</label>
+            <select id="filter"><option value="">All findings</option></select>
+            <span class="count" id="finding-count"></span>
+          </div>
+          <ul class="finding-list" id="finding-list"></ul>
+          <div class="scan-notes" id="scan-notes" hidden>
+            <h3>Scan notes</h3>
+            <ul id="notes-list"></ul>
+          </div>
+          <p class="fine legend">Exact: fixed AWS list price. Estimate: based on usage or AWS's recommendation.
+            Up to: the real saving is this amount or less. Prices are us-east-1 list prices; other regions
+            vary a little.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Built by <a href="https://wakimworks.com/judewakim">Jude Wakim</a>. Python, AWS Lambda, CDK.
+      Estimates, not a bill.</p>
+  </footer>
+</body>
+</html>

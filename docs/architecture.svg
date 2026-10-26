@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" font-family="Archivo, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t">
+<title id="t">AWS Waste Finder architecture</title>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#18222e"/></marker></defs>
+<rect width="1200" height="660" fill="#ffffff"/>
+<rect x="20" y="20" width="1160" height="360" fill="#e9eef2" rx="6"/>
+<text x="40" y="50" font-size="18" font-weight="700" fill="#18222e">Public demo  (WasteFinderDemo stack)</text>
+<text x="40" y="70" font-size="13" fill="#5b6875">A visitor scans their own account through a temporary read-only role</text>
+<rect x="40" y="100" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="130.0" y="127" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">Visitor&#x27;s browser</text>
+<text x="130.0" y="147" text-anchor="middle" font-size="12" fill="#5b6875">static site</text>
+<rect x="280" y="100" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="370.0" y="127" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">CloudFront + S3</text>
+<text x="370.0" y="147" text-anchor="middle" font-size="12" fill="#5b6875">website, strict CSP</text>
+<rect x="280" y="230" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="370.0" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">API Gateway</text>
+<text x="370.0" y="277" text-anchor="middle" font-size="12" fill="#5b6875">HTTP API, throttled</text>
+<rect x="520" y="230" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="610.0" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">API Lambda</text>
+<text x="610.0" y="277" text-anchor="middle" font-size="12" fill="#5b6875">sessions, scans</text>
+<rect x="520" y="310" width="180" height="56" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="610.0" y="337" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">DynamoDB</text>
+<text x="610.0" y="357" text-anchor="middle" font-size="12" fill="#5b6875">sessions, 2h TTL</text>
+<rect x="760" y="230" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="850.0" y="257" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">Worker Lambda</text>
+<text x="850.0" y="277" text-anchor="middle" font-size="12" fill="#5b6875">runs the scan</text>
+<rect x="760" y="310" width="180" height="56" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="850.0" y="337" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">S3 results</text>
+<text x="850.0" y="357" text-anchor="middle" font-size="12" fill="#5b6875">deleted after 1 day</text>
+<line x1="220" y1="132" x2="280" y2="132" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="250.0" y="124.0" text-anchor="middle" font-size="11.5" fill="#5b6875">loads</text>
+<line x1="130" y1="164" x2="280" y2="262" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="180" y="225" font-size="11.5" fill="#5b6875">calls API</text>
+<line x1="460" y1="262" x2="520" y2="262" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="610" y1="294" x2="610" y2="310" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="700" y1="262" x2="760" y2="262" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="730.0" y="254.0" text-anchor="middle" font-size="11.5" fill="#5b6875">async</text>
+<line x1="850" y1="294" x2="850" y2="310" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="990" y="80" width="190" height="290" rx="6" fill="#fff" stroke="#1e6b52" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="1085" y="104" text-anchor="middle" font-size="14" font-weight="700" fill="#1e6b52">Visitor's AWS account</text>
+<rect x="1005" y="118" width="160" height="64" rx="5" fill="#fff" stroke="#1e6b52" stroke-width="1.5"/>
+<text x="1085.0" y="145" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">WasteFinderReadOnly</text>
+<text x="1085.0" y="165" text-anchor="middle" font-size="12" fill="#5b6875">IAM role, read-only</text>
+<text x="1085" y="214" text-anchor="middle" font-size="12.5" fill="#18222e">EC2 / EBS / EIP</text>
+<text x="1085" y="238" text-anchor="middle" font-size="12.5" fill="#18222e">ELB, NAT gateways</text>
+<text x="1085" y="262" text-anchor="middle" font-size="12.5" fill="#18222e">CloudWatch metrics</text>
+<text x="1085" y="286" text-anchor="middle" font-size="12.5" fill="#18222e">S3 bucket metadata</text>
+<text x="1085" y="310" text-anchor="middle" font-size="12.5" fill="#18222e">Log group metadata</text>
+<text x="1085" y="334" text-anchor="middle" font-size="12.5" fill="#18222e">Compute Optimizer</text>
+<line x1="940" y1="250" x2="1005" y2="160" stroke="#1e6b52" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="955" y="186" text-anchor="end" font-size="11.5" fill="#1e6b52">AssumeRole +</text>
+<text x="955" y="201" text-anchor="end" font-size="11.5" fill="#1e6b52">one-time ExternalId</text>
+<rect x="20" y="400" width="1160" height="240" fill="#e9eef2" rx="6"/>
+<text x="40" y="430" font-size="18" font-weight="700" fill="#18222e">Scheduled scan  (WasteFinderScanner stack)</text>
+<text x="40" y="450" font-size="13" fill="#5b6875">Weekly scan of your own accounts, report to S3, totals by email</text>
+<rect x="40" y="490" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="130.0" y="517" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">EventBridge</text>
+<text x="130.0" y="537" text-anchor="middle" font-size="12" fill="#5b6875">every Monday</text>
+<rect x="280" y="490" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="370.0" y="517" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">Scan Lambda</text>
+<text x="370.0" y="537" text-anchor="middle" font-size="12" fill="#5b6875">all enabled regions</text>
+<rect x="520" y="470" width="180" height="64" rx="5" fill="#fff" stroke="#1e6b52" stroke-width="1.5"/>
+<text x="610.0" y="497" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">Your accounts</text>
+<text x="610.0" y="517" text-anchor="middle" font-size="12" fill="#5b6875">same read-only role</text>
+<rect x="760" y="470" width="180" height="64" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="850.0" y="497" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">S3 reports</text>
+<text x="850.0" y="517" text-anchor="middle" font-size="12" fill="#5b6875">HTML + JSON, encrypted</text>
+<rect x="760" y="560" width="180" height="56" rx="5" fill="#fff" stroke="#18222e" stroke-width="1.5"/>
+<text x="850.0" y="587" text-anchor="middle" font-size="14" font-weight="700" fill="#18222e">SNS email</text>
+<text x="850.0" y="607" text-anchor="middle" font-size="12" fill="#5b6875">totals only, no IDs</text>
+<line x1="220" y1="522" x2="280" y2="522" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="460" y1="510" x2="520" y2="502" stroke="#1e6b52" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="460" y1="530" x2="760" y2="575" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="370" y1="490" x2="370" y2="460" stroke="#18222e" stroke-width="1.5"/>
+<line x1="370" y1="460" x2="850" y2="460" stroke="#18222e" stroke-width="1.5"/>
+<line x1="850" y1="460" x2="850" y2="470" stroke="#18222e" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="1000" y="500" font-size="13" fill="#5b6875">Every finding:</text>
+<text x="1000" y="522" font-size="12.5" fill="#18222e">resource, region</text>
+<text x="1000" y="542" font-size="12.5" fill="#18222e">$/month estimate</text>
+<text x="1000" y="562" font-size="12.5" fill="#18222e">confidence: exact,</text>
+<text x="1000" y="582" font-size="12.5" fill="#18222e">  estimate or up-to</text>
+<text x="1000" y="602" font-size="12.5" fill="#18222e">the fix to apply</text>
+</svg>

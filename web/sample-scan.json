@@ -1,0 +1,347 @@
+{
+ "account_id": "123456789012",
+ "started_at": "2026-10-26T14:00:00+00:00",
+ "finished_at": "2026-10-26T14:01:38+00:00",
+ "regions": [
+  "ap-northeast-1",
+  "ap-south-1",
+  "ap-southeast-1",
+  "ap-southeast-2",
+  "ca-central-1",
+  "eu-central-1",
+  "eu-north-1",
+  "eu-west-1",
+  "eu-west-2",
+  "eu-west-3",
+  "sa-east-1",
+  "us-east-1",
+  "us-east-2",
+  "us-west-1",
+  "us-west-2"
+ ],
+ "monthly_total": 706.57,
+ "annual_total": 8478.84,
+ "summary": {
+  "ebs-unattached": {
+   "title": "Unattached EBS volumes",
+   "count": 3,
+   "monthly_cost": 278.0
+  },
+  "ec2-rightsizing": {
+   "title": "Over-provisioned EC2 instances",
+   "count": 2,
+   "monthly_cost": 170.53
+  },
+  "nat-idle": {
+   "title": "Idle NAT gateways",
+   "count": 2,
+   "monthly_cost": 73.0
+  },
+  "ebs-snapshot-orphaned": {
+   "title": "Old snapshots of deleted volumes",
+   "count": 3,
+   "monthly_cost": 40.0
+  },
+  "lb-idle": {
+   "title": "Idle load balancers",
+   "count": 2,
+   "monthly_cost": 34.68
+  },
+  "ebs-gp2": {
+   "title": "gp2 volumes that should be gp3",
+   "count": 3,
+   "monthly_cost": 32.0
+  },
+  "logs-no-retention": {
+   "title": "Log groups that never expire",
+   "count": 2,
+   "monthly_cost": 24.04
+  },
+  "ec2-stopped": {
+   "title": "Instances stopped for 30+ days",
+   "count": 1,
+   "monthly_cost": 24.0
+  },
+  "s3-stale-multipart": {
+   "title": "Abandoned S3 multipart uploads",
+   "count": 1,
+   "monthly_cost": 19.37
+  },
+  "eip-unused": {
+   "title": "Unused Elastic IPs",
+   "count": 3,
+   "monthly_cost": 10.95
+  }
+ },
+ "findings": [
+  {
+   "check": "ebs-unattached",
+   "title": "Unattached EBS volumes",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "vol-0f3a8c2d7e1b94560",
+   "resource_type": "EBS volume",
+   "monthly_cost": 220.0,
+   "confidence": "exact",
+   "detail": "200 GiB io1 volume (old-db-data) is not attached to any instance. Created 211 days ago.",
+   "action": "Snapshot it if the data might be needed, then delete the volume."
+  },
+  {
+   "check": "ec2-rightsizing",
+   "title": "Over-provisioned EC2 instances",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "i-0c4f7a2e9b1d83f56",
+   "resource_type": "EC2 instance",
+   "monthly_cost": 140.16,
+   "confidence": "estimate",
+   "detail": "m5.2xlarge is larger than its workload needs. Compute Optimizer recommends m5.large.",
+   "action": "Test on m5.large, then change the instance type during a maintenance window."
+  },
+  {
+   "check": "ebs-unattached",
+   "title": "Unattached EBS volumes",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "vol-09e1d4b7a2c6f3801",
+   "resource_type": "EBS volume",
+   "monthly_cost": 50.0,
+   "confidence": "exact",
+   "detail": "500 GiB gp2 volume (jenkins-workspace) is not attached to any instance. Created 96 days ago.",
+   "action": "Snapshot it if the data might be needed, then delete the volume."
+  },
+  {
+   "check": "nat-idle",
+   "title": "Idle NAT gateways",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "nat-0a91c3f2d4e5b6a78",
+   "resource_type": "NAT gateway",
+   "monthly_cost": 36.5,
+   "confidence": "exact",
+   "detail": "No traffic in the last 14 days. NAT gateways bill by the hour whether or not anything uses them.",
+   "action": "Delete it and remove the route that points to it. Release its Elastic IP afterwards."
+  },
+  {
+   "check": "nat-idle",
+   "title": "Idle NAT gateways",
+   "account_id": "123456789012",
+   "region": "us-west-2",
+   "resource_id": "nat-07d2e8b1c9a4f3e10",
+   "resource_type": "NAT gateway",
+   "monthly_cost": 36.5,
+   "confidence": "exact",
+   "detail": "No traffic in the last 14 days. NAT gateways bill by the hour whether or not anything uses them.",
+   "action": "Delete it and remove the route that points to it. Release its Elastic IP afterwards."
+  },
+  {
+   "check": "ec2-rightsizing",
+   "title": "Over-provisioned EC2 instances",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "i-02b8e6d1f4a7c9035",
+   "resource_type": "EC2 instance",
+   "monthly_cost": 30.37,
+   "confidence": "estimate",
+   "detail": "t3.xlarge is larger than its workload needs. Compute Optimizer recommends t3.large.",
+   "action": "Test on t3.large, then change the instance type during a maintenance window."
+  },
+  {
+   "check": "ebs-snapshot-orphaned",
+   "title": "Old snapshots of deleted volumes",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "snap-0b4e2f7a9c1d36e85",
+   "resource_type": "EBS snapshot",
+   "monthly_cost": 25.0,
+   "confidence": "upper-bound",
+   "detail": "Snapshot of a 500 GiB volume that no longer exists, 412 days old, not used by any of your AMIs. Snapshots are incremental, so the real cost is this amount or less.",
+   "action": "Confirm nobody needs it for recovery or compliance, then delete it (or move it to the snapshot archive tier)."
+  },
+  {
+   "check": "ec2-stopped",
+   "title": "Instances stopped for 30+ days",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "i-0e6b2a9d4c1f78302",
+   "resource_type": "EC2 instance",
+   "monthly_cost": 24.0,
+   "confidence": "exact",
+   "detail": "c5.4xlarge stopped for 122 days. Its 2 attached volume(s), 300 GiB in total, are still billed.",
+   "action": "If it's not coming back, create an AMI (or snapshots) and terminate it."
+  },
+  {
+   "check": "ebs-gp2",
+   "title": "gp2 volumes that should be gp3",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "vol-0c2e7f4a1b9d63e58",
+   "resource_type": "EBS volume",
+   "monthly_cost": 20.0,
+   "confidence": "exact",
+   "detail": "1000 GiB gp2 volume. gp3 is about 20% cheaper per GB with the same or better baseline performance.",
+   "action": "Modify the volume type to gp3 (online, no downtime). Match IOPS if the volume is larger than 1 TiB."
+  },
+  {
+   "check": "s3-stale-multipart",
+   "title": "Abandoned S3 multipart uploads",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "acme-data-lake-raw",
+   "resource_type": "S3 bucket",
+   "monthly_cost": 19.37,
+   "confidence": "estimate",
+   "detail": "37 upload(s) started over 7 days ago and never finished, about 842.0 GB. They don't show in the console but are billed.",
+   "action": "Add a lifecycle rule: abort incomplete multipart uploads after 7 days."
+  },
+  {
+   "check": "logs-no-retention",
+   "title": "Log groups that never expire",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "/aws/lambda/order-processor",
+   "resource_type": "CloudWatch log group",
+   "monthly_cost": 18.37,
+   "confidence": "upper-bound",
+   "detail": "612.4 GB stored with retention set to 'never expire', so the bill grows every month.",
+   "action": "Set a retention period (30-90 days is typical; longer if compliance requires it). Saving is up to this amount."
+  },
+  {
+   "check": "lb-idle",
+   "title": "Idle load balancers",
+   "account_id": "123456789012",
+   "region": "us-west-2",
+   "resource_id": "legacy-web",
+   "resource_type": "Classic ELB",
+   "monthly_cost": 18.25,
+   "confidence": "exact",
+   "detail": "Classic load balancer with no registered instances.",
+   "action": "Delete it if no DNS record points at it."
+  },
+  {
+   "check": "lb-idle",
+   "title": "Idle load balancers",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "staging-api-alb",
+   "resource_type": "ALB",
+   "monthly_cost": 16.43,
+   "confidence": "exact",
+   "detail": "Load balancer has no registered targets. The base hourly charge applies regardless.",
+   "action": "Delete it if no DNS record or service points at it."
+  },
+  {
+   "check": "ebs-snapshot-orphaned",
+   "title": "Old snapshots of deleted volumes",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "snap-03c9a1e6f2b7d4c18",
+   "resource_type": "EBS snapshot",
+   "monthly_cost": 10.0,
+   "confidence": "upper-bound",
+   "detail": "Snapshot of a 200 GiB volume that no longer exists, 288 days old, not used by any of your AMIs. Snapshots are incremental, so the real cost is this amount or less.",
+   "action": "Confirm nobody needs it for recovery or compliance, then delete it (or move it to the snapshot archive tier)."
+  },
+  {
+   "check": "ebs-unattached",
+   "title": "Unattached EBS volumes",
+   "account_id": "123456789012",
+   "region": "eu-west-1",
+   "resource_id": "vol-0a7c3e9f1b5d28c47",
+   "resource_type": "EBS volume",
+   "monthly_cost": 8.0,
+   "confidence": "exact",
+   "detail": "100 GiB gp3 volume is not attached to any instance. Created 43 days ago.",
+   "action": "Snapshot it if the data might be needed, then delete the volume."
+  },
+  {
+   "check": "ebs-gp2",
+   "title": "gp2 volumes that should be gp3",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "vol-05a9d3c7e2f1b8640",
+   "resource_type": "EBS volume",
+   "monthly_cost": 8.0,
+   "confidence": "exact",
+   "detail": "400 GiB gp2 volume. gp3 is about 20% cheaper per GB with the same or better baseline performance.",
+   "action": "Modify the volume type to gp3 (online, no downtime). Match IOPS if the volume is larger than 1 TiB."
+  },
+  {
+   "check": "logs-no-retention",
+   "title": "Log groups that never expire",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "/ecs/api-gateway-proxy",
+   "resource_type": "CloudWatch log group",
+   "monthly_cost": 5.67,
+   "confidence": "upper-bound",
+   "detail": "188.9 GB stored with retention set to 'never expire', so the bill grows every month.",
+   "action": "Set a retention period (30-90 days is typical; longer if compliance requires it). Saving is up to this amount."
+  },
+  {
+   "check": "ebs-snapshot-orphaned",
+   "title": "Old snapshots of deleted volumes",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "snap-0d7f1b3e8a2c56f90",
+   "resource_type": "EBS snapshot",
+   "monthly_cost": 5.0,
+   "confidence": "upper-bound",
+   "detail": "Snapshot of a 100 GiB volume that no longer exists, 190 days old, not used by any of your AMIs. Snapshots are incremental, so the real cost is this amount or less.",
+   "action": "Confirm nobody needs it for recovery or compliance, then delete it (or move it to the snapshot archive tier)."
+  },
+  {
+   "check": "ebs-gp2",
+   "title": "gp2 volumes that should be gp3",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "vol-0e1b6f9a4d7c23085",
+   "resource_type": "EBS volume",
+   "monthly_cost": 4.0,
+   "confidence": "exact",
+   "detail": "200 GiB gp2 volume. gp3 is about 20% cheaper per GB with the same or better baseline performance.",
+   "action": "Modify the volume type to gp3 (online, no downtime). Match IOPS if the volume is larger than 1 TiB."
+  },
+  {
+   "check": "eip-unused",
+   "title": "Unused Elastic IPs",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "eipalloc-0a3f7c1e9d2b48650",
+   "resource_type": "Elastic IP",
+   "monthly_cost": 3.65,
+   "confidence": "exact",
+   "detail": "54.210.18.77 is allocated but not attached to anything. AWS bills every public IPv4 address by the hour.",
+   "action": "Release the address if nothing depends on it (DNS records, allow-lists)."
+  },
+  {
+   "check": "eip-unused",
+   "title": "Unused Elastic IPs",
+   "account_id": "123456789012",
+   "region": "us-east-1",
+   "resource_id": "eipalloc-07e2b9d4c1a6f3082",
+   "resource_type": "Elastic IP",
+   "monthly_cost": 3.65,
+   "confidence": "exact",
+   "detail": "3.92.140.5 is allocated but not attached to anything. AWS bills every public IPv4 address by the hour.",
+   "action": "Release the address if nothing depends on it (DNS records, allow-lists)."
+  },
+  {
+   "check": "eip-unused",
+   "title": "Unused Elastic IPs",
+   "account_id": "123456789012",
+   "region": "us-west-2",
+   "resource_id": "eipalloc-0d1c8a5f3e7b92461",
+   "resource_type": "Elastic IP",
+   "monthly_cost": 3.65,
+   "confidence": "exact",
+   "detail": "35.165.22.198 is allocated but not attached to anything. AWS bills every public IPv4 address by the hour.",
+   "action": "Release the address if nothing depends on it (DNS records, allow-lists)."
+  }
+ ],
+ "errors": [],
+ "notices": [
+  "1 S3 bucket(s) could not be read (bucket policy or permissions) and were skipped."
+ ],
+ "sample": true
+}

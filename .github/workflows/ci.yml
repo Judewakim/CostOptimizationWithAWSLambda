@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+      - name: CDK synth (both stacks)
+        working-directory: infra
+        env:
+          CDK_DEFAULT_ACCOUNT: "111111111111"
+        run: npx --yes aws-cdk@2 synth --context enableDemo=true -q
