@@ -1,0 +1,2 @@
+Archivo (c) 2020 The Archivo Project Authors and IBM Plex Mono (c) IBM Corp.
+Both licensed under the SIL Open Font License 1.1: https://openfontlicense.org

@@ -1,0 +1,35 @@
+# Manual deploy to the staging/sandbox account. Never runs automatically.
+# Requires repository variables AWS_DEPLOY_ROLE_ARN (GitHub OIDC role) and AWS_REGION.
+name: Deploy to staging
+on:
+  workflow_dispatch:
+    inputs:
+      stacks:
+        description: "Stacks to deploy"
+        type: choice
+        options: [WasteFinderDemo, WasteFinderScanner, --all]
+        default: WasteFinderDemo
+permissions:
+  id-token: write
+  contents: read
+concurrency: deploy-staging
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r requirements-dev.txt && pytest -q
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Deploy
+        working-directory: infra
+        run: npx --yes aws-cdk@2 deploy ${{ inputs.stacks }} --context enableDemo=true --context allowedOrigins=https://wakimworks.com,https://www.wakimworks.com --require-approval never

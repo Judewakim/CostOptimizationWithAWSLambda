@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  AWS Waste Finder read-only scanning role. Lets the scanner read resource metadata
+  and usage metrics. It cannot read your data (no S3 object or log event access),
+  and cannot change, create or delete anything. Delete this stack to revoke access.
+
+Parameters:
+  ScannerRoleArn:
+    Type: String
+    Description: ARN of the scanner's IAM role that is allowed to assume this role.
+    AllowedPattern: "^arn:aws:iam::\\d{12}:role/[\\w+=,.@/-]+$"
+  ExternalId:
+    Type: String
+    Description: Unique ID issued by the scanner. Prevents anyone else from using this role.
+    MinLength: 8
+    MaxLength: 128
+    AllowedPattern: "^[\\w+=,.@:/-]+$"
+
+Resources:
+  WasteFinderReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: WasteFinderReadOnly
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Select [4, !Split [":", !Ref ScannerRoleArn]]
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref ExternalId
+              ArnEquals:
+                aws:PrincipalArn: !Ref ScannerRoleArn
+      Policies:
+        - PolicyName: WasteFinderReadOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Ec2Metadata
+                Effect: Allow
+                Action:
+                  - ec2:DescribeRegions
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeSnapshots
+                  - ec2:DescribeImages
+                  - ec2:DescribeAddresses
+                  - ec2:DescribeInstances
+                  - ec2:DescribeNatGateways
+                Resource: "*"
+              - Sid: LoadBalancerMetadata
+                Effect: Allow
+                Action:
+                  - elasticloadbalancing:DescribeLoadBalancers
+                  - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
+                Resource: "*"
+              - Sid: UsageMetrics
+                Effect: Allow
+                Action: cloudwatch:GetMetricStatistics
+                Resource: "*"
+              - Sid: S3BucketMetadataOnly
+                Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                  - s3:GetBucketLocation
+                  - s3:ListBucketMultipartUploads
+                  - s3:ListMultipartUploadParts
+                Resource: "*"
+              - Sid: LogGroupMetadataOnly
+                Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: "*"
+              - Sid: RightsizingRecommendations
+                Effect: Allow
+                Action: compute-optimizer:GetEC2InstanceRecommendations
+                Resource: "*"
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt WasteFinderReadOnlyRole.Arn
